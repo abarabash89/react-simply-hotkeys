@@ -1,7 +1,5 @@
 import { IS_FIREFOX, IS_WINDOWS } from "./check-device";
 
-export const specialKeys: string[] = ["cmd", "ctrl", "shift", "alt"];
-
 export const keyMap = {
   "0": 48,
   "1": 49,

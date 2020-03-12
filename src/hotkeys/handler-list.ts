@@ -1,7 +1,7 @@
-import { ListenerType } from "./config";
+import { Listener } from "./types";
 
 export interface IHandler {
-  listener: ListenerType;
+  listener: Listener;
   description?: string;
   namespace?: string;
   ignoreNamespace?: boolean;

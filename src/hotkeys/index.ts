@@ -1,5 +1,6 @@
-export { HotKey } from "./hot-key";
-export { HotKeysNamespace } from "./hot-key-namespace";
+import { Listener } from "./types";
+
+export type ListenerType = Listener;
+
 export { HotkeysService, SEPARATOR } from "./hotkeys-service";
-export { keyMap, previewKeyMap } from "./key-codes";
-export { HotkeysServiceContext } from "./context";
+export { HotkeysServiceContext, HotkeysNamespaceContext } from "./context";

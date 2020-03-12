@@ -1,8 +1,10 @@
 import { memo, useContext, useEffect } from "react";
 
-import { ListenerType } from "./config";
-import { HotkeysNamespaceContext } from "./hot-key-namespace";
-import { HotkeysServiceContext } from "./context";
+import {
+  HotkeysNamespaceContext,
+  HotkeysServiceContext,
+  ListenerType
+} from "../hotkeys";
 
 interface IHotKeyProps {
   keyMap: string;

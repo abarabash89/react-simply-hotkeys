@@ -1,8 +1,6 @@
-import React, { FC, memo, useEffect, useContext, createContext } from "react";
+import React, { FC, memo, useEffect, useContext } from "react";
 
-import { HotkeysServiceContext } from "./context";
-
-export const HotkeysNamespaceContext = createContext("");
+import { HotkeysNamespaceContext, HotkeysServiceContext } from "../hotkeys";
 
 interface IHotKeysNamespaceProps {
   name: string;

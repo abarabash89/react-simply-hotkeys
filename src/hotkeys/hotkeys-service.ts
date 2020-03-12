@@ -1,5 +1,5 @@
-import { keyCodeMap, keyMap, specialKeys } from "./key-codes";
-import { ListenerType, IGNORED_KEY_CODES, IGNORED_TAG_NAMES } from "./config";
+import { keyCodeMap, keyMap } from "./key-codes";
+import { Listener } from "./types";
 import { HandlerList, IHandler } from "./handler-list";
 
 interface IOptions {
@@ -14,6 +14,15 @@ type HotkeysStoreType = Map<string, HandlerList>;
 interface IHotkeysPreview {
   [keymap: string]: string;
 }
+
+const specialKeys = ["cmd", "ctrl", "shift", "alt"];
+export const IGNORED_KEY_CODES = [
+  keyMap.shift,
+  keyMap.cmd,
+  keyMap.ctrl,
+  keyMap.alt
+];
+export const IGNORED_TAG_NAMES = ["INPUT", "TEXTAREA"];
 
 export class HotkeysService {
   private namespace = "";
@@ -128,14 +137,14 @@ export class HotkeysService {
   /**
    * Add hotkey listener to the store
    * @param {string} hotkeys
-   * @param {ListenerType} listener
+   * @param {Listener} listener
    * @param {EventType} eventType keydown or keyup
    * @param {IOptions} options contains description namespace and ignore namespace property
    * @returns {HotkeysService}
    */
   add(
     hotkeys: string,
-    listener: ListenerType,
+    listener: Listener,
     eventType: EventType = "keydown",
     options: IOptions = {}
   ): HotkeysService {
@@ -161,16 +170,16 @@ export class HotkeysService {
   /**
    * Replace hotkey listener to the store
    * @param {string} hotkeys
-   * @param {ListenerType} oldListener
-   * @param {ListenerType} listener
+   * @param {Listener} oldListener
+   * @param {Listener} listener
    * @param {EventType} eventType keydown or keyup
    * @param {string|undefined} namespace
    * @returns {HotkeysService}
    */
   replaceListener(
     hotkeys: string,
-    oldListener: ListenerType,
-    listener: ListenerType,
+    oldListener: Listener,
+    listener: Listener,
     eventType: EventType = "keydown",
     namespace = ""
   ): HotkeysService {
@@ -190,14 +199,14 @@ export class HotkeysService {
   /**
    * Removes listener from store
    * @param {string} hotkeys
-   * @param {ListenerType} listener
+   * @param {Listener} listener
    * @param {EventType} eventType keydown or keyup
    * @param {string} namespace
    * @returns {HotkeysService}
    */
   remove(
     hotkeys: string,
-    listener: ListenerType,
+    listener: Listener,
     eventType: EventType = "keydown",
     namespace = ""
   ): HotkeysService {
