@@ -1,6 +1,6 @@
 import { keyCodeMap, keyMap } from "./key-codes";
-import { Listener } from "./types";
-import { HandlerList, IHandler } from "./handler-list";
+import { HandlerList } from "./handler-list";
+import { HotKeyListener, IHotKeyHandler, HotKeyEventTypes } from "./types";
 
 interface IOptions {
   description?: string;
@@ -9,7 +9,6 @@ interface IOptions {
   ignoreFocusedElements?: boolean;
 }
 export const SEPARATOR = "+";
-type EventType = "keyup" | "keydown";
 type HotkeysStoreType = Map<string, HandlerList>;
 interface IHotkeysPreview {
   [keymap: string]: string;
@@ -26,19 +25,14 @@ export const IGNORED_TAG_NAMES = ["INPUT", "TEXTAREA"];
 
 export class HotkeysService {
   private namespace = "";
-  private store: Map<EventType, HotkeysStoreType> = new Map();
-  private keys: Map<EventType, Set<number>> = new Map();
+  private store: Map<HotKeyEventTypes, HotkeysStoreType> = new Map();
+  private keys: Map<HotKeyEventTypes, Set<number>> = new Map();
 
   constructor() {
     document.addEventListener("keydown", this.checkKeysAndFireListener);
     document.addEventListener("keyup", this.checkKeysAndFireListener);
   }
 
-  /**
-   * Prepare hotkeys string
-   * @param {string[]|string} hotkeys
-   * @returns {string}
-   */
   private prepareKey(hotkeys: string[] | string): string {
     const temp: string[] = Array.isArray(hotkeys)
       ? hotkeys
@@ -59,21 +53,16 @@ export class HotkeysService {
     return result;
   }
 
-  /**
-   * Checks event.keyCode and fires listener
-   * @param {KeyboardEvent} event
-   * @returns {void}
-   */
   private checkKeysAndFireListener = (event: KeyboardEvent): void => {
     if (IGNORED_KEY_CODES.includes(event.keyCode)) {
       return;
     }
-    if (!this.keys.get(event.type as EventType)) {
-      this.keys.set(event.type as EventType, new Set());
+    if (!this.keys.get(event.type as HotKeyEventTypes)) {
+      this.keys.set(event.type as HotKeyEventTypes, new Set());
     }
-    const keys: Set<number> = this.keys.get(event.type as EventType) as Set<
-      number
-    >;
+    const keys: Set<number> = this.keys.get(
+      event.type as HotKeyEventTypes
+    ) as Set<number>;
     keys.clear();
     keys[event.metaKey ? "add" : "delete"](keyMap.cmd);
     keys[event.ctrlKey ? "add" : "delete"](keyMap.ctrl);
@@ -97,11 +86,11 @@ export class HotkeysService {
   private checkHotKeys = (
     keys: Set<number>,
     event: KeyboardEvent
-  ): IHandler | null => {
+  ): IHotKeyHandler | null => {
     const result: string[] = [];
     keys.forEach((value: number) => result.push(keyCodeMap[value]));
     const key: string = this.prepareKey(result);
-    const store = this.store.get(event.type as EventType);
+    const store = this.store.get(event.type as HotKeyEventTypes);
     if (!store) {
       return null;
     }
@@ -109,43 +98,26 @@ export class HotkeysService {
     if (!handlerList) {
       return null;
     }
-    const handler: IHandler | undefined = handlerList.get(this.namespace);
+    const handler: IHotKeyHandler | undefined = handlerList.get(this.namespace);
     if (!handler) {
       return null;
     }
     return handler;
   };
 
-  /**
-   * Set current namespace
-   * @param {string|undefined} namespace
-   * @returns {HotkeysService}
-   */
   setNamespace(namespace = ""): HotkeysService {
     this.namespace = namespace;
     return this;
   }
 
-  /**
-   * Get current namespace
-   * @returns {string}
-   */
   getNamespace(): string {
     return this.namespace;
   }
 
-  /**
-   * Add hotkey listener to the store
-   * @param {string} hotkeys
-   * @param {Listener} listener
-   * @param {EventType} eventType keydown or keyup
-   * @param {IOptions} options contains description namespace and ignore namespace property
-   * @returns {HotkeysService}
-   */
   add(
     hotkeys: string,
-    listener: Listener,
-    eventType: EventType = "keydown",
+    listener: HotKeyListener,
+    eventType: HotKeyEventTypes = "keydown",
     options: IOptions = {}
   ): HotkeysService {
     const key: string = this.prepareKey(hotkeys);
@@ -167,47 +139,10 @@ export class HotkeysService {
     return this;
   }
 
-  /**
-   * Replace hotkey listener to the store
-   * @param {string} hotkeys
-   * @param {Listener} oldListener
-   * @param {Listener} listener
-   * @param {EventType} eventType keydown or keyup
-   * @param {string|undefined} namespace
-   * @returns {HotkeysService}
-   */
-  replaceListener(
-    hotkeys: string,
-    oldListener: Listener,
-    listener: Listener,
-    eventType: EventType = "keydown",
-    namespace = ""
-  ): HotkeysService {
-    const key: string = this.prepareKey(hotkeys);
-    const store = this.store.get(eventType) as HotkeysStoreType;
-    if (!store) {
-      return this;
-    }
-    if (!store.get(key)) {
-      return this;
-    }
-    const list: HandlerList = store.get(key) as HandlerList;
-    list.replace({ listener: oldListener, namespace }, { listener, namespace });
-    return this;
-  }
-
-  /**
-   * Removes listener from store
-   * @param {string} hotkeys
-   * @param {Listener} listener
-   * @param {EventType} eventType keydown or keyup
-   * @param {string} namespace
-   * @returns {HotkeysService}
-   */
   remove(
     hotkeys: string,
-    listener: Listener,
-    eventType: EventType = "keydown",
+    listener: HotKeyListener,
+    eventType: HotKeyEventTypes = "keydown",
     namespace = ""
   ): HotkeysService {
     const key: string = this.prepareKey(hotkeys);
@@ -222,18 +157,14 @@ export class HotkeysService {
     return this;
   }
 
-  /**
-   * Returns list of hotkeys with description
-   * @returns {IHotkeysPreview}
-   */
   getHotkeysWithDescriptions(): IHotkeysPreview {
     const result: IHotkeysPreview = {};
-    this.store.forEach((item: HotkeysStoreType) => {
+    this.store.forEach(item => {
       if (!item) {
         return;
       }
-      item.forEach((list: HandlerList, keyMap: string) => {
-        const handler: IHandler | undefined = list.get(this.namespace);
+      item.forEach((list, keyMap) => {
+        const handler = list.get(this.namespace);
         if (!handler || !handler.description) {
           return;
         }

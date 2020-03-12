@@ -3,14 +3,14 @@ import { memo, useContext, useEffect } from "react";
 import {
   HotkeysNamespaceContext,
   HotkeysServiceContext,
-  ListenerType
+  HotKeyListenerType
 } from "../hotkeys";
 
 interface IHotKeyProps {
   keyMap: string;
   description: string;
-  onKeyDown?: ListenerType;
-  onKeyUp?: ListenerType;
+  onKeyDown?: HotKeyListenerType;
+  onKeyUp?: HotKeyListenerType;
   ignoreNamespace?: boolean;
   ignoreFocusedElements?: boolean;
 }

@@ -1,25 +1,17 @@
-import { Listener } from "./types";
-
-export interface IHandler {
-  listener: Listener;
-  description?: string;
-  namespace?: string;
-  ignoreNamespace?: boolean;
-  ignoreFocusedElements?: boolean;
-}
+import { IHotKeyHandler } from "./types";
 
 export class HandlerList {
-  private list: IHandler[] = [];
+  private list: IHotKeyHandler[] = [];
 
   /**
    * Get last Handler
    * @param {string} namespace
-   * @returns {IHandler|undefined}
+   * @returns {IHotKeyHandler|undefined}
    */
-  get(namespace?: string): IHandler | undefined {
+  get(namespace?: string): IHotKeyHandler | undefined {
     if (namespace) {
-      const handlers: IHandler[] = this.list.filter(
-        (handler: IHandler) =>
+      const handlers: IHotKeyHandler[] = this.list.filter(
+        (handler: IHotKeyHandler) =>
           handler.namespace === namespace || handler.ignoreNamespace
       );
       return handlers[handlers.length - 1];
@@ -29,40 +21,22 @@ export class HandlerList {
 
   /**
    * Add data to list
-   * @param {IHandler} handler that contains in the list
+   * @param {IHotKeyHandler} handler that contains in the list
    * @returns {HandlerList}
    */
-  add(handler: IHandler): HandlerList {
+  add(handler: IHotKeyHandler): HandlerList {
     this.list.push(handler);
     return this;
   }
 
   /**
-   * Replace handler to new
-   * @param {IHandler} oldHandler that will be replaced
-   * @param {IHandler} newHandler
-   * @returns {HandlerList}
-   */
-  replace(oldHandler: IHandler, newHandler: IHandler): HandlerList {
-    const index: number = this.list.findIndex(
-      (h: IHandler) =>
-        h.listener === oldHandler.listener &&
-        h.namespace === oldHandler.namespace
-    );
-    if (index > -1) {
-      this.list[index] = newHandler;
-    }
-    return this;
-  }
-
-  /**
    * Remove data from list
-   * @param {IHandler} handler that contains in the list
+   * @param {IHotKeyHandler} handler that contains in the list
    * @returns {HandlerList}
    */
-  remove(handler: IHandler): HandlerList {
+  remove(handler: IHotKeyHandler): HandlerList {
     const index: number = this.list.findIndex(
-      (h: IHandler) =>
+      (h: IHotKeyHandler) =>
         h.listener === handler.listener && h.namespace === handler.namespace
     );
     if (index > -1) {

@@ -1,18 +1,19 @@
-import { HandlerList, IHandler } from "./handler-list";
+import { HandlerList } from "./handler-list";
+import { IHotKeyHandler } from "./types";
 
 const listener = () => {};
-const handler: IHandler = {
+const handler: IHotKeyHandler = {
   listener,
   description: "test",
   namespace: "namespace"
 };
-const handler2: IHandler = {
+const handler2: IHotKeyHandler = {
   listener,
   description: "test",
   namespace: "namespace1"
 };
 
-const handler1: IHandler = {
+const handler1: IHotKeyHandler = {
   listener: () => {},
   description: "test1"
 };
@@ -58,13 +59,5 @@ describe("HandlerList", () => {
     handlerList.add(handler);
     handlerList.remove(handler2);
     expect(handlerList.get()).toMatchObject(handler);
-  });
-
-  it("replace method should replace on listener to another", () => {
-    handlerList.add(handler2);
-    handlerList.add(handler);
-    const newHandler = { ...handler, listener: () => {} };
-    handlerList.replace(handler, newHandler);
-    expect(handlerList.get()).toMatchObject(newHandler);
   });
 });

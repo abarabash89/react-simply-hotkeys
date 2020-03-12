@@ -1,6 +1,6 @@
-import { Listener } from "./types";
+import { HotKeyListener } from "./types";
 
-export type ListenerType = Listener;
+export type HotKeyListenerType = HotKeyListener;
 
-export { HotkeysService, SEPARATOR } from "./hotkeys-service";
+export { HotkeysService } from "./hotkeys-service";
 export { HotkeysServiceContext, HotkeysNamespaceContext } from "./context";
