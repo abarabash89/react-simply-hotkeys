@@ -2,8 +2,6 @@ import { HandlerList } from "./handler-list";
 import { keyCodeMap, keyMap, KeysNames } from "./key-codes";
 import { HotKeyListener, IHotKeyHandler, HotKeyEventTypes } from "./types";
 
-const specialKeys = ["cmd", "ctrl", "shift", "alt"];
-
 const EventSpecialKeysMapping: [(event: KeyboardEvent) => boolean, number][] = [
   [(event: KeyboardEvent): boolean => event.metaKey, keyMap.cmd],
   [(event: KeyboardEvent): boolean => event.ctrlKey, keyMap.ctrl],
@@ -47,24 +45,11 @@ export class HotkeysService {
     document.addEventListener("keyup", this.checkKeysAndFireListener);
   }
 
-  private prepareKey(hotkeys: string[] | string): string {
-    const temp = Array.isArray(hotkeys)
-      ? hotkeys
-      : hotkeys.toLocaleLowerCase().split(this.config.keysSeparator);
-    let result = "";
-    specialKeys.forEach(key => {
-      const index = temp.indexOf(key);
-      if (index === -1) {
-        return;
-      }
-      temp.splice(index, 1);
-      result += `${result.length ? this.config.keysSeparator : ""}${key}`;
-    });
-    temp.forEach(
-      key =>
-        (result += `${result.length ? this.config.keysSeparator : ""}${key}`)
-    );
-    return result;
+  private convertToStoreKey(keys: string[] | string): string {
+    if (Array.isArray(keys)) {
+      return keys.join(this.config.keysSeparator);
+    }
+    return keys;
   }
 
   private findHandler(
@@ -75,10 +60,9 @@ export class HotkeysService {
       keysNames.push(keyCodeMap[key]);
       return keysNames;
     }, []);
-    return this.handlerStore
-      .get(eventType)
-      ?.get(this.prepareKey(keysNames))
-      ?.get(this.currentNamespace);
+    const handlerStore = this.handlerStore.get(eventType);
+    const handlerList = handlerStore?.get(this.convertToStoreKey(keysNames));
+    return handlerList?.get(this.currentNamespace);
   }
 
   private getKeysFromEvent(event: KeyboardEvent): number[] {
@@ -98,11 +82,10 @@ export class HotkeysService {
       return;
     }
 
-    const eventType = event.type as HotKeyEventTypes;
-
-    const keys = this.getKeysFromEvent(event);
-
-    const handler = this.findHandler(eventType, keys);
+    const handler = this.findHandler(
+      event.type as HotKeyEventTypes,
+      this.getKeysFromEvent(event)
+    );
     if (!handler) {
       return;
     }
@@ -135,7 +118,7 @@ export class HotkeysService {
     eventType: HotKeyEventTypes = "keydown",
     options: IHandlerOptions = {}
   ): HotkeysService {
-    const key = this.prepareKey(hotkeys);
+    const key = this.convertToStoreKey(hotkeys);
     if (!this.handlerStore.get(eventType)) {
       this.handlerStore.set(eventType, new Map());
     }
@@ -160,7 +143,7 @@ export class HotkeysService {
     eventType: HotKeyEventTypes = "keydown",
     namespace = ""
   ): HotkeysService {
-    const key = this.prepareKey(hotkeys);
+    const key = this.convertToStoreKey(hotkeys);
     const handlerStore = this.handlerStore.get(eventType);
     if (!handlerStore) {
       return this;
