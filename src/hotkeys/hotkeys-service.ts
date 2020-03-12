@@ -1,134 +1,149 @@
-import { keyCodeMap, keyMap } from "./key-codes";
 import { HandlerList } from "./handler-list";
+import { keyCodeMap, keyMap, KeysNames } from "./key-codes";
 import { HotKeyListener, IHotKeyHandler, HotKeyEventTypes } from "./types";
 
-interface IOptions {
+const specialKeys = ["cmd", "ctrl", "shift", "alt"];
+
+const EventSpecialKeysMapping: [(event: KeyboardEvent) => boolean, number][] = [
+  [(event: KeyboardEvent): boolean => event.metaKey, keyMap.cmd],
+  [(event: KeyboardEvent): boolean => event.ctrlKey, keyMap.ctrl],
+  [(event: KeyboardEvent): boolean => event.altKey, keyMap.alt],
+  [(event: KeyboardEvent): boolean => event.shiftKey, keyMap.shift]
+];
+
+interface IHandlerOptions {
   description?: string;
   namespace?: string;
   ignoreNamespace?: boolean;
   ignoreFocusedElements?: boolean;
 }
-export const SEPARATOR = "+";
 type HotkeysStoreType = Map<string, HandlerList>;
 interface IHotkeysPreview {
   [keymap: string]: string;
 }
 
-const specialKeys = ["cmd", "ctrl", "shift", "alt"];
-export const IGNORED_KEY_CODES = [
-  keyMap.shift,
-  keyMap.cmd,
-  keyMap.ctrl,
-  keyMap.alt
-];
-export const IGNORED_TAG_NAMES = ["INPUT", "TEXTAREA"];
+interface IHotkeysServiceConfig {
+  ignoredKeyCodes: number[];
+  ignoredTagNames: string[];
+  keysSeparator: string;
+}
+const DefaultHotkeysServiceConfig: IHotkeysServiceConfig = {
+  ignoredKeyCodes: [keyMap.shift, keyMap.cmd, keyMap.ctrl, keyMap.alt],
+  ignoredTagNames: ["INPUT", "TEXTAREA"],
+  keysSeparator: "+"
+};
 
 export class HotkeysService {
-  private namespace = "";
-  private store: Map<HotKeyEventTypes, HotkeysStoreType> = new Map();
-  private keys: Map<HotKeyEventTypes, Set<number>> = new Map();
+  private config: IHotkeysServiceConfig = DefaultHotkeysServiceConfig;
+  private handlerStore: Map<HotKeyEventTypes, HotkeysStoreType> = new Map();
+  private currentNamespace = "";
 
-  constructor() {
+  constructor(userConfig: Partial<IHotkeysServiceConfig> = {}) {
+    this.config = {
+      ...DefaultHotkeysServiceConfig,
+      ...userConfig
+    };
     document.addEventListener("keydown", this.checkKeysAndFireListener);
     document.addEventListener("keyup", this.checkKeysAndFireListener);
   }
 
   private prepareKey(hotkeys: string[] | string): string {
-    const temp: string[] = Array.isArray(hotkeys)
+    const temp = Array.isArray(hotkeys)
       ? hotkeys
-      : (hotkeys as string).toLocaleLowerCase().split(SEPARATOR);
+      : hotkeys.toLocaleLowerCase().split(this.config.keysSeparator);
     let result = "";
-    specialKeys.forEach((key: string) => {
-      const index: number = temp.indexOf(key);
+    specialKeys.forEach(key => {
+      const index = temp.indexOf(key);
       if (index === -1) {
         return;
       }
       temp.splice(index, 1);
-      result += `${result.length ? SEPARATOR : ""}${key}`;
+      result += `${result.length ? this.config.keysSeparator : ""}${key}`;
     });
     temp.forEach(
-      (key: string): string =>
-        (result += `${result.length ? SEPARATOR : ""}${key}`)
+      key =>
+        (result += `${result.length ? this.config.keysSeparator : ""}${key}`)
     );
     return result;
   }
 
-  private checkKeysAndFireListener = (event: KeyboardEvent): void => {
-    if (IGNORED_KEY_CODES.includes(event.keyCode)) {
+  private findHandler(
+    eventType: HotKeyEventTypes,
+    keys: number[]
+  ): IHotKeyHandler | undefined {
+    const keysNames = keys.reduce<KeysNames[]>((keysNames, key) => {
+      keysNames.push(keyCodeMap[key]);
+      return keysNames;
+    }, []);
+    return this.handlerStore
+      .get(eventType)
+      ?.get(this.prepareKey(keysNames))
+      ?.get(this.currentNamespace);
+  }
+
+  private getKeysFromEvent(event: KeyboardEvent): number[] {
+    const keys = EventSpecialKeysMapping.reduce<number[]>(
+      (keys, [isPressed, key]) => {
+        isPressed(event) && keys.push(key);
+        return keys;
+      },
+      []
+    );
+    keys.push(event.keyCode);
+    return keys;
+  }
+
+  private checkKeysAndFireListener = (event: KeyboardEvent) => {
+    if (this.config.ignoredKeyCodes.includes(event.keyCode)) {
       return;
     }
-    if (!this.keys.get(event.type as HotKeyEventTypes)) {
-      this.keys.set(event.type as HotKeyEventTypes, new Set());
-    }
-    const keys: Set<number> = this.keys.get(
-      event.type as HotKeyEventTypes
-    ) as Set<number>;
-    keys.clear();
-    keys[event.metaKey ? "add" : "delete"](keyMap.cmd);
-    keys[event.ctrlKey ? "add" : "delete"](keyMap.ctrl);
-    keys[event.altKey ? "add" : "delete"](keyMap.alt);
-    keys[event.shiftKey ? "add" : "delete"](keyMap.shift);
-    keys.add(event.keyCode);
-    const handler = this.checkHotKeys(keys, event);
+
+    const eventType = event.type as HotKeyEventTypes;
+
+    const keys = this.getKeysFromEvent(event);
+
+    const handler = this.findHandler(eventType, keys);
     if (!handler) {
       return;
     }
-    if (
+
+    const ignoreHotKeyAction =
       !handler.ignoreFocusedElements &&
-      IGNORED_TAG_NAMES.includes((event.target as HTMLElement).tagName)
-    ) {
+      this.config.ignoredTagNames.includes(
+        (event.target as HTMLElement).tagName
+      );
+    if (ignoreHotKeyAction) {
       return;
     }
+
     handler.listener(event);
     event.preventDefault();
   };
 
-  private checkHotKeys = (
-    keys: Set<number>,
-    event: KeyboardEvent
-  ): IHotKeyHandler | null => {
-    const result: string[] = [];
-    keys.forEach((value: number) => result.push(keyCodeMap[value]));
-    const key: string = this.prepareKey(result);
-    const store = this.store.get(event.type as HotKeyEventTypes);
-    if (!store) {
-      return null;
-    }
-    const handlerList: HandlerList | undefined = store.get(key);
-    if (!handlerList) {
-      return null;
-    }
-    const handler: IHotKeyHandler | undefined = handlerList.get(this.namespace);
-    if (!handler) {
-      return null;
-    }
-    return handler;
-  };
-
-  setNamespace(namespace = ""): HotkeysService {
-    this.namespace = namespace;
+  setCurrentNamespace(namespace = ""): HotkeysService {
+    this.currentNamespace = namespace;
     return this;
   }
 
-  getNamespace(): string {
-    return this.namespace;
+  getCurrentNamespace() {
+    return this.currentNamespace;
   }
 
   add(
     hotkeys: string,
     listener: HotKeyListener,
     eventType: HotKeyEventTypes = "keydown",
-    options: IOptions = {}
+    options: IHandlerOptions = {}
   ): HotkeysService {
-    const key: string = this.prepareKey(hotkeys);
-    if (!this.store.get(eventType)) {
-      this.store.set(eventType, new Map());
+    const key = this.prepareKey(hotkeys);
+    if (!this.handlerStore.get(eventType)) {
+      this.handlerStore.set(eventType, new Map());
     }
-    const store = this.store.get(eventType) as HotkeysStoreType;
-    if (!store.get(key)) {
-      store.set(key, new HandlerList());
+    const handlerStore = this.handlerStore.get(eventType) as HotkeysStoreType;
+    if (!handlerStore.get(key)) {
+      handlerStore.set(key, new HandlerList());
     }
-    const list: HandlerList = store.get(key) as HandlerList;
+    const list: HandlerList = handlerStore.get(key) as HandlerList;
     list.add({
       listener,
       ignoreNamespace: options.ignoreNamespace || false,
@@ -145,12 +160,12 @@ export class HotkeysService {
     eventType: HotKeyEventTypes = "keydown",
     namespace = ""
   ): HotkeysService {
-    const key: string = this.prepareKey(hotkeys);
-    const store = this.store.get(eventType);
-    if (!store) {
+    const key = this.prepareKey(hotkeys);
+    const handlerStore = this.handlerStore.get(eventType);
+    if (!handlerStore) {
       return this;
     }
-    const list: HandlerList | undefined = store.get(key);
+    const list = handlerStore.get(key);
     if (list) {
       list.remove({ listener, namespace });
     }
@@ -159,12 +174,12 @@ export class HotkeysService {
 
   getHotkeysWithDescriptions(): IHotkeysPreview {
     const result: IHotkeysPreview = {};
-    this.store.forEach(item => {
+    this.handlerStore.forEach(item => {
       if (!item) {
         return;
       }
       item.forEach((list, keyMap) => {
-        const handler = list.get(this.namespace);
+        const handler = list.get(this.currentNamespace);
         if (!handler || !handler.description) {
           return;
         }
