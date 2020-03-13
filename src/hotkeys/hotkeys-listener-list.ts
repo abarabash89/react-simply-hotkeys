@@ -1,16 +1,28 @@
-import { IHotKeyListener } from "./types";
+import { IHotKeyListener, HotKeyEventListener } from "./types";
+
+export interface IHotKeyListenerListFilterOptions {
+  namespace?: IHotKeyListener["namespace"];
+  eventType: IHotKeyListener["eventType"];
+}
 
 export class HotKeyListenerList {
   private list: IHotKeyListener[] = [];
 
-  get(namespace?: string): IHotKeyListener | undefined {
-    if (!namespace) {
-      return this.list[this.list.length - 1];
-    }
-    const handlers = this.list.filter(
-      handler => handler.namespace === namespace || handler.ignoreNamespace
-    );
-    return handlers[handlers.length - 1];
+  get({
+    namespace = "",
+    eventType
+  }: IHotKeyListenerListFilterOptions): IHotKeyListener | undefined {
+    const listeners = this.list.filter(listener => {
+      const shouldCheckNamespace = namespace && !listener.ignoreNamespace;
+      if (shouldCheckNamespace && namespace !== listener.namespace) {
+        return false;
+      }
+      if (eventType && eventType !== listener.eventType) {
+        return false;
+      }
+      return true;
+    });
+    return listeners[listeners.length - 1];
   }
 
   add(handler: IHotKeyListener): HotKeyListenerList {
@@ -18,14 +30,16 @@ export class HotKeyListenerList {
     return this;
   }
 
-  remove({ listener, namespace }: IHotKeyListener): HotKeyListenerList {
-    const index = this.list.findIndex(
-      handler =>
-        handler.listener === listener && handler.namespace === namespace
+  remove(
+    listener: HotKeyEventListener,
+    { namespace = "", eventType }: IHotKeyListenerListFilterOptions
+  ): HotKeyListenerList {
+    this.list = this.list.filter(
+      l =>
+        eventType !== l.eventType ||
+        l.listener !== listener ||
+        l.namespace !== namespace
     );
-    if (index > -1) {
-      this.list.splice(index, 1);
-    }
     return this;
   }
 

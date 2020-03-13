@@ -1,44 +1,68 @@
 import { HotKeyListenerList } from "./hotkeys-listener-list";
 import { IHotKeyListener } from "./types";
 
-const listener = () => {};
-
-const hotKeyListener: IHotKeyListener = {
-  listener,
-  description: "test",
-  namespace: "namespace"
-};
 const hotKeyListener1: IHotKeyListener = {
   listener: () => {},
-  description: "test1"
+  description: "test",
+  namespace: "namespace",
+  eventType: "keydown",
+  ignoreNamespace: false,
+  ignoreFocusedElements: false
+};
+const hotKeyListener2: IHotKeyListener = {
+  listener: () => {},
+  description: "test1",
+  namespace: "",
+  eventType: "keyup",
+  ignoreNamespace: false,
+  ignoreFocusedElements: false
 };
 
 describe("HotKeyListenerList", () => {
-  let handlerList: HotKeyListenerList;
-  beforeEach(() => (handlerList = new HotKeyListenerList()));
+  let hkListenerList: HotKeyListenerList;
+  beforeEach(() => (hkListenerList = new HotKeyListenerList()));
 
-  it("should add handler to the list", () => {
-    expect(handlerList.getLength() === 0).toBeTruthy();
-    handlerList.add(hotKeyListener);
-    expect(handlerList.getLength() === 0).toBeFalsy();
+  it("should add listener to the list", () => {
+    expect(hkListenerList.getLength() === 0).toBeTruthy();
+    hkListenerList.add(hotKeyListener1);
+    expect(hkListenerList.getLength() === 0).toBeFalsy();
   });
 
-  it("should return last handler from the list", () => {
-    handlerList.add(hotKeyListener);
-    handlerList.add(hotKeyListener1);
-    expect(handlerList.get()).toMatchObject(hotKeyListener1);
+  it("should return hotKeyListener2", () => {
+    hkListenerList.add(hotKeyListener1);
+    hkListenerList.add(hotKeyListener2);
+    expect(hkListenerList.get({ eventType: "keyup" })).toMatchObject(
+      hotKeyListener2
+    );
   });
 
-  it("should return handler with provided namespace", () => {
-    handlerList.add(hotKeyListener);
-    handlerList.add(hotKeyListener1);
-    expect(handlerList.get("namespace")).toMatchObject(hotKeyListener);
+  it("should return hotKeyListener", () => {
+    hkListenerList.add(hotKeyListener1);
+    hkListenerList.add(hotKeyListener2);
+    expect(
+      hkListenerList.get({ namespace: "namespace", eventType: "keydown" })
+    ).toMatchObject(hotKeyListener1);
   });
 
-  it("should remove handler", () => {
-    handlerList.add(hotKeyListener);
-    handlerList.add(hotKeyListener1);
-    handlerList.remove(hotKeyListener1);
-    expect(handlerList.get()).toMatchObject(hotKeyListener);
+  it("should remove listener", () => {
+    hkListenerList.add(hotKeyListener1);
+    hkListenerList.add(hotKeyListener2);
+
+    hkListenerList.remove(hotKeyListener2.listener, {
+      eventType: "keyup"
+    });
+
+    expect(hkListenerList.get({ eventType: "keyup" })).toEqual(undefined);
+    expect(hkListenerList.getLength() === 1).toBeTruthy();
+  });
+
+  it("should remove listener if eventType is not correct", () => {
+    hkListenerList.add(hotKeyListener1);
+    hkListenerList.add(hotKeyListener2);
+    hkListenerList.remove(hotKeyListener2.listener, {
+      namespace: "namespace",
+      eventType: "keyup"
+    });
+    expect(hkListenerList.getLength() === 2).toBeTruthy();
   });
 });

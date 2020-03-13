@@ -3,14 +3,14 @@ import { memo, useContext, useEffect } from "react";
 import {
   HotkeysNamespaceContext,
   HotkeysServiceContext,
-  HotKeyListener
+  HotKeyEventListener
 } from "../hotkeys";
 
 interface IHotKeyProps {
   keyMap: string;
   description: string;
-  onKeyDown?: HotKeyListener;
-  onKeyUp?: HotKeyListener;
+  onKeyDown?: HotKeyEventListener;
+  onKeyUp?: HotKeyEventListener;
   ignoreNamespace?: boolean;
   ignoreFocusedElements?: boolean;
 }
@@ -37,11 +37,27 @@ export const HotKey = memo<IHotKeyProps>(
         ignoreNamespace,
         ignoreFocusedElements
       };
-      onKeyDown && service.add(keyMap, onKeyDown, "keydown", options);
-      onKeyUp && service.add(keyMap, onKeyUp, "keyup", options);
+      onKeyDown &&
+        service.add(keyMap, onKeyDown, {
+          ...options,
+          eventType: "keydown"
+        });
+      onKeyUp &&
+        service.add(keyMap, onKeyUp, {
+          ...options,
+          eventType: "keyup"
+        });
       return () => {
-        onKeyDown && service.remove(keyMap, onKeyDown, "keydown", namespace);
-        onKeyUp && service.remove(keyMap, onKeyUp, "keyup", namespace);
+        onKeyDown &&
+          service.remove(keyMap, onKeyDown, {
+            eventType: "keydown",
+            namespace
+          });
+        onKeyUp &&
+          service.remove(keyMap, onKeyUp, {
+            eventType: "keyup",
+            namespace
+          });
       };
     }, [
       description,
