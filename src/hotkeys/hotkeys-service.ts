@@ -131,8 +131,7 @@ export class HotkeysService {
       description: options.description || ""
     });
 
-    handlerStore.set(storeKey, list);
-    this.handlerStore.set(eventType, handlerStore);
+    this.handlerStore.set(eventType, handlerStore.set(storeKey, list));
     return this;
   }
 

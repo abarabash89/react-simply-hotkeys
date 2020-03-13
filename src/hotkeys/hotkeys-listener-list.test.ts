@@ -2,12 +2,12 @@ import { HotKeyListenerList } from "./hotkeys-listener-list";
 import { IHotKeyListener } from "./types";
 
 const listener = () => {};
+
 const hotKeyListener: IHotKeyListener = {
   listener,
   description: "test",
   namespace: "namespace"
 };
-
 const hotKeyListener1: IHotKeyListener = {
   listener: () => {},
   description: "test1"
@@ -32,9 +32,7 @@ describe("HotKeyListenerList", () => {
   it("should return handler with provided namespace", () => {
     handlerList.add(hotKeyListener);
     handlerList.add(hotKeyListener1);
-    expect(handlerList.get(hotKeyListener.namespace)).toMatchObject(
-      hotKeyListener
-    );
+    expect(handlerList.get("namespace")).toMatchObject(hotKeyListener);
   });
 
   it("should remove handler", () => {
