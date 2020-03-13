@@ -7,20 +7,41 @@ describe("HotkeysService", () => {
   it("should add listener", () => {
     const listener = () => {};
     hkService.add("cmd+a", listener);
-    expect(hkService.getRegisteredListeners().size).toEqual(1);
+    expect(
+      hkService
+        .getRegisteredListeners()
+        .get("cmd+a")!
+        .getLength()
+    ).toEqual(1);
   });
 
   it("should remove listener", () => {
     const listener = () => {};
-    hkService.add("cmd+a", listener);
+
+    hkService.add("cmd+a", listener, { eventType: "keyup" });
     expect(hkService.getRegisteredListeners().size).toEqual(1);
-    hkService.remove("cmd+a", listener);
+
+    hkService.remove("cmd+a", listener, { eventType: "keyup" });
     expect(
       hkService
         .getRegisteredListeners()
-        ?.get("keydown")
-        ?.get("cmd+a")
-        ?.getLength() || 0
+        .get("cmd+a")!
+        .getLength()
     ).toEqual(0);
+  });
+
+  it("should not remove listener", () => {
+    const listener = () => {};
+
+    hkService.add("cmd+a", listener, { eventType: "keyup" });
+    expect(hkService.getRegisteredListeners().size).toEqual(1);
+
+    hkService.remove("cmd+a", listener, { eventType: "keydown" });
+    expect(
+      hkService
+        .getRegisteredListeners()
+        .get("cmd+a")!
+        .getLength()
+    ).toEqual(1);
   });
 });

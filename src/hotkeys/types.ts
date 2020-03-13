@@ -8,4 +8,5 @@ export interface IHotKeyListener {
   namespace: string;
   ignoreNamespace: boolean;
   ignoreFocusedElements: boolean;
+  eventType: HotKeyEventTypes;
 }

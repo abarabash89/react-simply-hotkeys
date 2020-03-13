@@ -1,15 +1,27 @@
 import { IHotKeyListener, HotKeyEventListener } from "./types";
 
+export interface IHotKeyListenerListFilterOptions {
+  namespace?: IHotKeyListener["namespace"];
+  eventType: IHotKeyListener["eventType"];
+}
+
 export class HotKeyListenerList {
   private list: IHotKeyListener[] = [];
 
-  get(namespace?: string): IHotKeyListener | undefined {
-    if (!namespace) {
-      return this.list[this.list.length - 1];
-    }
-    const listeners = this.list.filter(
-      listener => listener.namespace === namespace || listener.ignoreNamespace
-    );
+  get({
+    namespace = "",
+    eventType
+  }: IHotKeyListenerListFilterOptions): IHotKeyListener | undefined {
+    const listeners = this.list.filter(listener => {
+      const shouldCheckNamespace = namespace && !listener.ignoreNamespace;
+      if (shouldCheckNamespace && namespace !== listener.namespace) {
+        return false;
+      }
+      if (eventType && eventType !== listener.eventType) {
+        return false;
+      }
+      return true;
+    });
     return listeners[listeners.length - 1];
   }
 
@@ -18,9 +30,15 @@ export class HotKeyListenerList {
     return this;
   }
 
-  remove(listener: HotKeyEventListener, namespace = ""): HotKeyListenerList {
+  remove(
+    listener: HotKeyEventListener,
+    { namespace = "", eventType }: IHotKeyListenerListFilterOptions
+  ): HotKeyListenerList {
     this.list = this.list.filter(
-      l => l.listener !== listener || l.namespace !== namespace
+      l =>
+        eventType !== l.eventType ||
+        l.listener !== listener ||
+        l.namespace !== namespace
     );
     return this;
   }
