@@ -45,7 +45,7 @@ export class HotkeysService {
     document.addEventListener("keyup", this.keyboardEventListener);
   }
 
-  private convertToStoreKey(keys: string[] | string): string {
+  private convertKeysToStoreKey(keys: string[] | string): string {
     if (Array.isArray(keys)) {
       return keys.join(this.config.keysSeparator);
     }
@@ -61,7 +61,9 @@ export class HotkeysService {
       return keysNames;
     }, []);
     const handlerStore = this.handlerStore.get(eventType);
-    const handlerList = handlerStore?.get(this.convertToStoreKey(keysNames));
+    const handlerList = handlerStore?.get(
+      this.convertKeysToStoreKey(keysNames)
+    );
     return handlerList?.get(this.currentNamespace);
   }
 
@@ -117,7 +119,7 @@ export class HotkeysService {
     eventType: HotKeyEventTypes = "keydown",
     options: IHandlerOptions = {}
   ): HotkeysService {
-    const storeKey = this.convertToStoreKey(hotkeys);
+    const storeKey = this.convertKeysToStoreKey(hotkeys);
 
     const handlerStore: HotkeysStoreType =
       this.handlerStore.get(eventType) || new Map();
@@ -141,7 +143,7 @@ export class HotkeysService {
     eventType: HotKeyEventTypes = "keydown",
     namespace = ""
   ): HotkeysService {
-    const storeKey = this.convertToStoreKey(hotkeys);
+    const storeKey = this.convertKeysToStoreKey(hotkeys);
 
     const handlerStore = this.handlerStore.get(eventType);
     if (!handlerStore) {
