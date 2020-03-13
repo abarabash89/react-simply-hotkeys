@@ -29,12 +29,7 @@ export class HandlerList {
     return this;
   }
 
-  clear(): HandlerList {
-    this.list = [];
-    return this;
-  }
-
-  isEmpty(): boolean {
-    return !this.list.length;
+  getLength() {
+    return this.list.length;
   }
 }

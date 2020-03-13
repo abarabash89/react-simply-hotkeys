@@ -107,8 +107,7 @@ export class HotkeysService {
     this.currentNamespace = namespace;
     return this;
   }
-
-  getCurrentNamespace() {
+  getCurrentNamespace(): string {
     return this.currentNamespace;
   }
 
@@ -118,15 +117,12 @@ export class HotkeysService {
     eventType: HotKeyEventTypes = "keydown",
     options: IHandlerOptions = {}
   ): HotkeysService {
-    const key = this.convertToStoreKey(hotkeys);
-    if (!this.handlerStore.get(eventType)) {
-      this.handlerStore.set(eventType, new Map());
-    }
-    const handlerStore = this.handlerStore.get(eventType) as HotkeysStoreType;
-    if (!handlerStore.get(key)) {
-      handlerStore.set(key, new HandlerList());
-    }
-    const list: HandlerList = handlerStore.get(key) as HandlerList;
+    const storeKey = this.convertToStoreKey(hotkeys);
+
+    const handlerStore: HotkeysStoreType =
+      this.handlerStore.get(eventType) || new Map();
+    const list = handlerStore.get(storeKey) || new HandlerList();
+
     list.add({
       listener,
       ignoreNamespace: options.ignoreNamespace || false,
@@ -134,6 +130,9 @@ export class HotkeysService {
       namespace: options.namespace || "",
       description: options.description || ""
     });
+
+    handlerStore.set(storeKey, list);
+    this.handlerStore.set(eventType, handlerStore);
     return this;
   }
 
@@ -143,32 +142,32 @@ export class HotkeysService {
     eventType: HotKeyEventTypes = "keydown",
     namespace = ""
   ): HotkeysService {
-    const key = this.convertToStoreKey(hotkeys);
+    const storeKey = this.convertToStoreKey(hotkeys);
+
     const handlerStore = this.handlerStore.get(eventType);
     if (!handlerStore) {
       return this;
     }
-    const list = handlerStore.get(key);
+
+    const list = handlerStore.get(storeKey);
     if (list) {
       list.remove({ listener, namespace });
     }
+
     return this;
   }
 
   getHotkeysWithDescriptions(): IHotkeysPreview {
-    const result: IHotkeysPreview = {};
-    this.handlerStore.forEach(item => {
-      if (!item) {
-        return;
-      }
-      item.forEach((list, keyMap) => {
-        const handler = list.get(this.currentNamespace);
-        if (!handler || !handler.description) {
-          return;
-        }
-        result[keyMap] = handler.description;
-      });
-    });
-    return result;
+    return Array.from(this.handlerStore).reduce<IHotkeysPreview>(
+      (hotkeysWithDescriptions, [, store]) => {
+        const hotKeyList = Object.fromEntries(
+          Array.from(store).filter(
+            ([, list]) => list.get(this.currentNamespace)?.description
+          )
+        );
+        return Object.assign(hotkeysWithDescriptions, hotKeyList);
+      },
+      {}
+    );
   }
 }

@@ -22,42 +22,28 @@ describe("HandlerList", () => {
   let handlerList: HandlerList;
   beforeEach(() => (handlerList = new HandlerList()));
 
-  it("add method should add handler to the handler list", () => {
-    expect(handlerList.isEmpty()).toBeTruthy();
+  it("should add handler to the list", () => {
+    expect(handlerList.getLength() === 0).toBeTruthy();
     handlerList.add(handler);
-    expect(handlerList.isEmpty()).toBeFalsy();
+    expect(handlerList.getLength() === 0).toBeFalsy();
   });
 
-  it("get should return last item in the list", () => {
+  it("should return last handler from the list", () => {
     handlerList.add(handler);
     handlerList.add(handler1);
     expect(handlerList.get()).toMatchObject(handler1);
   });
 
-  it("get should return item with namespace", () => {
+  it("should return handler with provided namespace", () => {
     handlerList.add(handler);
     handlerList.add(handler1);
     expect(handlerList.get(handler.namespace)).toMatchObject(handler);
   });
 
-  it("clear method should clear HandlerList", () => {
-    handlerList.add(handler);
-    handlerList.add(handler1);
-    handlerList.clear();
-    expect(handlerList.isEmpty()).toBeTruthy();
-  });
-
-  it("remove method should remove listener", () => {
+  it("should remove handler", () => {
     handlerList.add(handler);
     handlerList.add(handler1);
     handlerList.remove(handler1);
-    expect(handlerList.get()).toMatchObject(handler);
-  });
-
-  it("remove method should remove listener with namespace", () => {
-    handlerList.add(handler2);
-    handlerList.add(handler);
-    handlerList.remove(handler2);
     expect(handlerList.get()).toMatchObject(handler);
   });
 });
