@@ -32,7 +32,7 @@ export const HotKey = memo<IHotKeyProps>(
         return;
       }
       const options = {
-        description1: description,
+        description,
         namespace,
         ignoreNamespace,
         ignoreFocusedElements
