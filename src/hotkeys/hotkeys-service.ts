@@ -32,7 +32,7 @@ const DefaultHotkeysServiceConfig: IHotkeysServiceConfig = {
 };
 
 export class HotkeysService {
-  private config: IHotkeysServiceConfig = DefaultHotkeysServiceConfig;
+  private config: IHotkeysServiceConfig;
   private handlerStore: Map<HotKeyEventTypes, HotkeysStoreType> = new Map();
   private currentNamespace = "";
 
