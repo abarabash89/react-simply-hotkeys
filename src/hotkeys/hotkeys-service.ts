@@ -1,6 +1,6 @@
-import { HandlerList } from "./handler-list";
+import { HotKeyListenerList } from "./hotkeys-listener-list";
 import { keyCodeMap, keyMap, KeysNames } from "./key-codes";
-import { HotKeyListener, IHotKeyHandler, HotKeyEventTypes } from "./types";
+import { HotKeyListener, IHotKeyListener, HotKeyEventTypes } from "./types";
 
 const EventSpecialKeysMapping: [(event: KeyboardEvent) => boolean, number][] = [
   [(event: KeyboardEvent): boolean => event.metaKey, keyMap.cmd],
@@ -15,7 +15,7 @@ interface IHandlerOptions {
   ignoreNamespace?: boolean;
   ignoreFocusedElements?: boolean;
 }
-type HotkeysStoreType = Map<string, HandlerList>;
+type HotkeysStoreType = Map<string, HotKeyListenerList>;
 interface IHotkeysPreview {
   [keymap: string]: string;
 }
@@ -41,8 +41,8 @@ export class HotkeysService {
       ...DefaultHotkeysServiceConfig,
       ...userConfig
     };
-    document.addEventListener("keydown", this.checkKeysAndFireListener);
-    document.addEventListener("keyup", this.checkKeysAndFireListener);
+    document.addEventListener("keydown", this.keyboardEventListener);
+    document.addEventListener("keyup", this.keyboardEventListener);
   }
 
   private convertToStoreKey(keys: string[] | string): string {
@@ -55,7 +55,7 @@ export class HotkeysService {
   private findHandler(
     eventType: HotKeyEventTypes,
     keys: number[]
-  ): IHotKeyHandler | undefined {
+  ): IHotKeyListener | undefined {
     const keysNames = keys.reduce<KeysNames[]>((keysNames, key) => {
       keysNames.push(keyCodeMap[key]);
       return keysNames;
@@ -77,7 +77,7 @@ export class HotkeysService {
     return keys;
   }
 
-  private checkKeysAndFireListener = (event: KeyboardEvent) => {
+  private keyboardEventListener = (event: KeyboardEvent) => {
     if (this.config.ignoredKeyCodes.includes(event.keyCode)) {
       return;
     }
@@ -121,7 +121,7 @@ export class HotkeysService {
 
     const handlerStore: HotkeysStoreType =
       this.handlerStore.get(eventType) || new Map();
-    const list = handlerStore.get(storeKey) || new HandlerList();
+    const list = handlerStore.get(storeKey) || new HotKeyListenerList();
 
     list.add({
       listener,

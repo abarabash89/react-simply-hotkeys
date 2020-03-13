@@ -1,9 +1,9 @@
-import { IHotKeyHandler } from "./types";
+import { IHotKeyListener } from "./types";
 
-export class HandlerList {
-  private list: IHotKeyHandler[] = [];
+export class HotKeyListenerList {
+  private list: IHotKeyListener[] = [];
 
-  get(namespace?: string): IHotKeyHandler | undefined {
+  get(namespace?: string): IHotKeyListener | undefined {
     if (!namespace) {
       return this.list[this.list.length - 1];
     }
@@ -13,12 +13,12 @@ export class HandlerList {
     return handlers[handlers.length - 1];
   }
 
-  add(handler: IHotKeyHandler): HandlerList {
+  add(handler: IHotKeyListener): HotKeyListenerList {
     this.list.push(handler);
     return this;
   }
 
-  remove({ listener, namespace }: IHotKeyHandler): HandlerList {
+  remove({ listener, namespace }: IHotKeyListener): HotKeyListenerList {
     const index = this.list.findIndex(
       handler =>
         handler.listener === listener && handler.namespace === namespace

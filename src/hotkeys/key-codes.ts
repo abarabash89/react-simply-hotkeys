@@ -1,4 +1,4 @@
-import { IS_FIREFOX, IS_WINDOWS } from "./check-device";
+import { IS_FIREFOX, IS_WINDOWS } from "../utils/check-device";
 
 export const keyMap = {
   "0": 48,
