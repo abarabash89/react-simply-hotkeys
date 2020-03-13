@@ -9,12 +9,6 @@ const EventSpecialKeysMapping: [(event: KeyboardEvent) => boolean, number][] = [
   [(event: KeyboardEvent): boolean => event.shiftKey, keyMap.shift]
 ];
 
-interface IHandlerOptions {
-  description?: string;
-  namespace?: string;
-  ignoreNamespace?: boolean;
-  ignoreFocusedElements?: boolean;
-}
 type HotkeysStoreType = Map<string, HotKeyListenerList>;
 interface IHotkeysPreview {
   [keymap: string]: string;
@@ -117,7 +111,7 @@ export class HotkeysService {
     hotkeys: string,
     listener: HotKeyListener,
     eventType: HotKeyEventTypes = "keydown",
-    options: IHandlerOptions = {}
+    options: Partial<Omit<IHotKeyListener, "listener">> = {}
   ): HotkeysService {
     const storeKey = this.convertKeysToStoreKey(hotkeys);
 
