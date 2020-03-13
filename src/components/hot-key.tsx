@@ -8,7 +8,7 @@ import {
 
 interface IHotKeyProps {
   keyMap: string;
-  description: string;
+  description?: string;
   onKeyDown?: HotKeyEventListener;
   onKeyUp?: HotKeyEventListener;
   ignoreNamespace?: boolean;
@@ -20,9 +20,9 @@ export const HotKey = memo<IHotKeyProps>(
     keyMap,
     onKeyDown,
     onKeyUp,
-    description,
-    ignoreFocusedElements,
-    ignoreNamespace
+    description = "",
+    ignoreFocusedElements = false,
+    ignoreNamespace = false
   }) => {
     const service = useContext(HotkeysServiceContext);
     const namespace = useContext(HotkeysNamespaceContext);

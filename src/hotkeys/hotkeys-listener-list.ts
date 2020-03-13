@@ -43,7 +43,7 @@ export class HotKeyListenerList {
     return this;
   }
 
-  getLength() {
+  getLength(): number {
     return this.list.length;
   }
 }
