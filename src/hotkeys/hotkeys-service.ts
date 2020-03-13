@@ -1,6 +1,10 @@
 import { HotKeyListenerList } from "./hotkeys-listener-list";
 import { keyCodeMap, keyMap, KeysNames } from "./key-codes";
-import { HotKeyListener, IHotKeyListener, HotKeyEventTypes } from "./types";
+import {
+  HotKeyEventListener,
+  IHotKeyListener,
+  HotKeyEventTypes
+} from "./types";
 
 const EventSpecialKeysMapping: [(event: KeyboardEvent) => boolean, number][] = [
   [(event: KeyboardEvent): boolean => event.metaKey, keyMap.cmd],
@@ -109,7 +113,7 @@ export class HotkeysService {
 
   add(
     hotkeys: string,
-    listener: HotKeyListener,
+    listener: HotKeyEventListener,
     eventType: HotKeyEventTypes = "keydown",
     options: Partial<Omit<IHotKeyListener, "listener">> = {}
   ): HotkeysService {
@@ -137,7 +141,7 @@ export class HotkeysService {
 
   remove(
     hotkeys: string,
-    listener: HotKeyListener,
+    listener: HotKeyEventListener,
     eventType: HotKeyEventTypes = "keydown",
     namespace = ""
   ): HotkeysService {
@@ -150,7 +154,7 @@ export class HotkeysService {
 
     const listenerList = listenersStore.get(storeKey);
     if (listenerList) {
-      listenerList.remove({ listener, namespace });
+      listenerList.remove(listener, namespace);
     }
 
     return this;
