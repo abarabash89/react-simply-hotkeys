@@ -1,4 +1,4 @@
-import { IS_FIREFOX, IS_WINDOWS } from "./check-device";
+import { IS_FIREFOX, IS_WINDOWS } from "../utils/check-device";
 
 export const keyMap = {
   "0": 48,
@@ -105,11 +105,11 @@ export const keyMap = {
   ";": IS_FIREFOX ? 59 : 186
 };
 
-type Keys = keyof typeof keyMap;
-type KeyCodeMap = Record<number, Keys>;
+export type KeysNames = keyof typeof keyMap;
+type KeyCodeMap = Record<number, KeysNames>;
 
 export const keyCodeMap: KeyCodeMap = (Object.entries(keyMap) as [
-  Keys,
+  KeysNames,
   number
 ][]).reduce<KeyCodeMap>((keyCodeMap, [key, value]) => {
   keyCodeMap[value] = key;

@@ -1,245 +1,178 @@
-import { keyCodeMap, keyMap } from "./key-codes";
-import { Listener } from "./types";
-import { HandlerList, IHandler } from "./handler-list";
+import { HotKeyListenerList } from "./hotkeys-listener-list";
+import { keyCodeMap, keyMap, KeysNames } from "./key-codes";
+import { HotKeyListener, IHotKeyListener, HotKeyEventTypes } from "./types";
 
-interface IOptions {
-  description?: string;
-  namespace?: string;
-  ignoreNamespace?: boolean;
-  ignoreFocusedElements?: boolean;
-}
-export const SEPARATOR = "+";
-type EventType = "keyup" | "keydown";
-type HotkeysStoreType = Map<string, HandlerList>;
+const EventSpecialKeysMapping: [(event: KeyboardEvent) => boolean, number][] = [
+  [(event: KeyboardEvent): boolean => event.metaKey, keyMap.cmd],
+  [(event: KeyboardEvent): boolean => event.ctrlKey, keyMap.ctrl],
+  [(event: KeyboardEvent): boolean => event.altKey, keyMap.alt],
+  [(event: KeyboardEvent): boolean => event.shiftKey, keyMap.shift]
+];
+
+type ListenersStoreType = Map<string, HotKeyListenerList>;
 interface IHotkeysPreview {
   [keymap: string]: string;
 }
 
-const specialKeys = ["cmd", "ctrl", "shift", "alt"];
-export const IGNORED_KEY_CODES = [
-  keyMap.shift,
-  keyMap.cmd,
-  keyMap.ctrl,
-  keyMap.alt
-];
-export const IGNORED_TAG_NAMES = ["INPUT", "TEXTAREA"];
+interface IHotkeysServiceConfig {
+  ignoredKeyCodes: number[];
+  ignoredTagNames: string[];
+  keysSeparator: string;
+}
+const DefaultHotkeysServiceConfig: IHotkeysServiceConfig = {
+  ignoredKeyCodes: [keyMap.shift, keyMap.cmd, keyMap.ctrl, keyMap.alt],
+  ignoredTagNames: ["INPUT", "TEXTAREA"],
+  keysSeparator: "+"
+};
 
 export class HotkeysService {
-  private namespace = "";
-  private store: Map<EventType, HotkeysStoreType> = new Map();
-  private keys: Map<EventType, Set<number>> = new Map();
+  private config: IHotkeysServiceConfig;
+  private listenersStore: Map<HotKeyEventTypes, ListenersStoreType> = new Map();
+  private currentNamespace = "";
 
-  constructor() {
-    document.addEventListener("keydown", this.checkKeysAndFireListener);
-    document.addEventListener("keyup", this.checkKeysAndFireListener);
+  constructor(userConfig: Partial<IHotkeysServiceConfig> = {}) {
+    this.config = {
+      ...DefaultHotkeysServiceConfig,
+      ...userConfig
+    };
+    document.addEventListener("keydown", this.keyboardEventListener);
+    document.addEventListener("keyup", this.keyboardEventListener);
   }
 
-  /**
-   * Prepare hotkeys string
-   * @param {string[]|string} hotkeys
-   * @returns {string}
-   */
-  private prepareKey(hotkeys: string[] | string): string {
-    const temp: string[] = Array.isArray(hotkeys)
-      ? hotkeys
-      : (hotkeys as string).toLocaleLowerCase().split(SEPARATOR);
-    let result = "";
-    specialKeys.forEach((key: string) => {
-      const index: number = temp.indexOf(key);
-      if (index === -1) {
-        return;
-      }
-      temp.splice(index, 1);
-      result += `${result.length ? SEPARATOR : ""}${key}`;
-    });
-    temp.forEach(
-      (key: string): string =>
-        (result += `${result.length ? SEPARATOR : ""}${key}`)
+  private convertKeysToStoreKey(keys: string[] | string): string {
+    if (Array.isArray(keys)) {
+      return keys.join(this.config.keysSeparator);
+    }
+    return keys;
+  }
+
+  private findHotKeyListener(
+    eventType: HotKeyEventTypes,
+    keys: number[]
+  ): IHotKeyListener | undefined {
+    const keysNames = keys.reduce<KeysNames[]>((keysNames, key) => {
+      keysNames.push(keyCodeMap[key]);
+      return keysNames;
+    }, []);
+    const listenersStore = this.listenersStore.get(eventType);
+    const listenerList = listenersStore?.get(
+      this.convertKeysToStoreKey(keysNames)
     );
-    return result;
+    return listenerList?.get(this.currentNamespace);
   }
 
-  /**
-   * Checks event.keyCode and fires listener
-   * @param {KeyboardEvent} event
-   * @returns {void}
-   */
-  private checkKeysAndFireListener = (event: KeyboardEvent): void => {
-    if (IGNORED_KEY_CODES.includes(event.keyCode)) {
+  private getKeysFromEvent(event: KeyboardEvent): number[] {
+    const keys = EventSpecialKeysMapping.reduce<number[]>(
+      (keys, [isPressed, key]) => {
+        isPressed(event) && keys.push(key);
+        return keys;
+      },
+      []
+    );
+    keys.push(event.keyCode);
+    return keys;
+  }
+
+  private keyboardEventListener = (event: KeyboardEvent) => {
+    if (this.config.ignoredKeyCodes.includes(event.keyCode)) {
       return;
     }
-    if (!this.keys.get(event.type as EventType)) {
-      this.keys.set(event.type as EventType, new Set());
-    }
-    const keys: Set<number> = this.keys.get(event.type as EventType) as Set<
-      number
-    >;
-    keys.clear();
-    keys[event.metaKey ? "add" : "delete"](keyMap.cmd);
-    keys[event.ctrlKey ? "add" : "delete"](keyMap.ctrl);
-    keys[event.altKey ? "add" : "delete"](keyMap.alt);
-    keys[event.shiftKey ? "add" : "delete"](keyMap.shift);
-    keys.add(event.keyCode);
-    const handler = this.checkHotKeys(keys, event);
-    if (!handler) {
+
+    const hotKeyListener = this.findHotKeyListener(
+      event.type as HotKeyEventTypes,
+      this.getKeysFromEvent(event)
+    );
+    if (!hotKeyListener) {
       return;
     }
-    if (
-      !handler.ignoreFocusedElements &&
-      IGNORED_TAG_NAMES.includes((event.target as HTMLElement).tagName)
-    ) {
+
+    const ignoreHotKeyAction =
+      !hotKeyListener.ignoreFocusedElements &&
+      this.config.ignoredTagNames.includes(
+        (event.target as HTMLElement).tagName
+      );
+    if (ignoreHotKeyAction) {
       return;
     }
-    handler.listener(event);
+
+    hotKeyListener.listener(event);
     event.preventDefault();
   };
 
-  private checkHotKeys = (
-    keys: Set<number>,
-    event: KeyboardEvent
-  ): IHandler | null => {
-    const result: string[] = [];
-    keys.forEach((value: number) => result.push(keyCodeMap[value]));
-    const key: string = this.prepareKey(result);
-    const store = this.store.get(event.type as EventType);
-    if (!store) {
-      return null;
-    }
-    const handlerList: HandlerList | undefined = store.get(key);
-    if (!handlerList) {
-      return null;
-    }
-    const handler: IHandler | undefined = handlerList.get(this.namespace);
-    if (!handler) {
-      return null;
-    }
-    return handler;
-  };
-
-  /**
-   * Set current namespace
-   * @param {string|undefined} namespace
-   * @returns {HotkeysService}
-   */
-  setNamespace(namespace = ""): HotkeysService {
-    this.namespace = namespace;
+  setCurrentNamespace(namespace = ""): HotkeysService {
+    this.currentNamespace = namespace;
     return this;
   }
-
-  /**
-   * Get current namespace
-   * @returns {string}
-   */
-  getNamespace(): string {
-    return this.namespace;
+  getCurrentNamespace(): string {
+    return this.currentNamespace;
   }
 
-  /**
-   * Add hotkey listener to the store
-   * @param {string} hotkeys
-   * @param {Listener} listener
-   * @param {EventType} eventType keydown or keyup
-   * @param {IOptions} options contains description namespace and ignore namespace property
-   * @returns {HotkeysService}
-   */
   add(
     hotkeys: string,
-    listener: Listener,
-    eventType: EventType = "keydown",
-    options: IOptions = {}
+    listener: HotKeyListener,
+    eventType: HotKeyEventTypes = "keydown",
+    options: Partial<Omit<IHotKeyListener, "listener">> = {}
   ): HotkeysService {
-    const key: string = this.prepareKey(hotkeys);
-    if (!this.store.get(eventType)) {
-      this.store.set(eventType, new Map());
-    }
-    const store = this.store.get(eventType) as HotkeysStoreType;
-    if (!store.get(key)) {
-      store.set(key, new HandlerList());
-    }
-    const list: HandlerList = store.get(key) as HandlerList;
-    list.add({
+    const storeKey = this.convertKeysToStoreKey(hotkeys);
+
+    const listenersStore: ListenersStoreType =
+      this.listenersStore.get(eventType) || new Map();
+    const listenerList =
+      listenersStore.get(storeKey) || new HotKeyListenerList();
+
+    listenerList.add({
       listener,
       ignoreNamespace: options.ignoreNamespace || false,
       ignoreFocusedElements: options.ignoreFocusedElements || false,
       namespace: options.namespace || "",
       description: options.description || ""
     });
+
+    this.listenersStore.set(
+      eventType,
+      listenersStore.set(storeKey, listenerList)
+    );
     return this;
   }
 
-  /**
-   * Replace hotkey listener to the store
-   * @param {string} hotkeys
-   * @param {Listener} oldListener
-   * @param {Listener} listener
-   * @param {EventType} eventType keydown or keyup
-   * @param {string|undefined} namespace
-   * @returns {HotkeysService}
-   */
-  replaceListener(
-    hotkeys: string,
-    oldListener: Listener,
-    listener: Listener,
-    eventType: EventType = "keydown",
-    namespace = ""
-  ): HotkeysService {
-    const key: string = this.prepareKey(hotkeys);
-    const store = this.store.get(eventType) as HotkeysStoreType;
-    if (!store) {
-      return this;
-    }
-    if (!store.get(key)) {
-      return this;
-    }
-    const list: HandlerList = store.get(key) as HandlerList;
-    list.replace({ listener: oldListener, namespace }, { listener, namespace });
-    return this;
-  }
-
-  /**
-   * Removes listener from store
-   * @param {string} hotkeys
-   * @param {Listener} listener
-   * @param {EventType} eventType keydown or keyup
-   * @param {string} namespace
-   * @returns {HotkeysService}
-   */
   remove(
     hotkeys: string,
-    listener: Listener,
-    eventType: EventType = "keydown",
+    listener: HotKeyListener,
+    eventType: HotKeyEventTypes = "keydown",
     namespace = ""
   ): HotkeysService {
-    const key: string = this.prepareKey(hotkeys);
-    const store = this.store.get(eventType);
-    if (!store) {
+    const storeKey = this.convertKeysToStoreKey(hotkeys);
+
+    const listenersStore = this.listenersStore.get(eventType);
+    if (!listenersStore) {
       return this;
     }
-    const list: HandlerList | undefined = store.get(key);
-    if (list) {
-      list.remove({ listener, namespace });
+
+    const listenerList = listenersStore.get(storeKey);
+    if (listenerList) {
+      listenerList.remove({ listener, namespace });
     }
+
     return this;
   }
 
-  /**
-   * Returns list of hotkeys with description
-   * @returns {IHotkeysPreview}
-   */
+  getRegisteredListeners() {
+    return this.listenersStore;
+  }
+
+  // TODO: move this method to the hotkeys popup
   getHotkeysWithDescriptions(): IHotkeysPreview {
-    const result: IHotkeysPreview = {};
-    this.store.forEach((item: HotkeysStoreType) => {
-      if (!item) {
-        return;
-      }
-      item.forEach((list: HandlerList, keyMap: string) => {
-        const handler: IHandler | undefined = list.get(this.namespace);
-        if (!handler || !handler.description) {
-          return;
-        }
-        result[keyMap] = handler.description;
-      });
-    });
-    return result;
+    return Array.from(this.listenersStore).reduce<IHotkeysPreview>(
+      (hotkeysWithDescriptions, [, store]) => {
+        const hotKeyList = Object.fromEntries(
+          Array.from(store).filter(
+            ([, listenerList]) =>
+              listenerList.get(this.currentNamespace)?.description
+          )
+        );
+        return Object.assign(hotkeysWithDescriptions, hotKeyList);
+      },
+      {}
+    );
   }
 }

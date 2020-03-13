@@ -14,10 +14,10 @@ export const HotKeysNamespace: FC<IHotKeysNamespaceProps> = memo(
       if (!service) {
         return;
       }
-      const currentNamespace = service.getNamespace();
-      service.setNamespace(enableOther ? "" : name);
+      const oldNamespace = service.getCurrentNamespace();
+      service.setCurrentNamespace(enableOther ? "" : name);
       return () => {
-        service.setNamespace(currentNamespace);
+        service.setCurrentNamespace(oldNamespace);
       };
     }, [enableOther, name, service]);
     return (
