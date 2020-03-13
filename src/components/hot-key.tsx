@@ -1,4 +1,4 @@
-import { memo, useContext, useEffect } from "react";
+import React, { FC, memo, useContext, useEffect } from "react";
 
 import {
   HotkeysNamespaceContext,
@@ -8,21 +8,22 @@ import {
 
 interface IHotKeyProps {
   keyMap: string;
-  description?: string;
   onKeyDown?: HotKeyEventListener;
   onKeyUp?: HotKeyEventListener;
+  description?: string;
   ignoreNamespace?: boolean;
   ignoreFocusedElements?: boolean;
 }
 
-export const HotKey = memo<IHotKeyProps>(
+export const HotKey: FC<IHotKeyProps> = memo(
   ({
     keyMap,
     onKeyDown,
     onKeyUp,
     description = "",
+    ignoreNamespace = false,
     ignoreFocusedElements = false,
-    ignoreNamespace = false
+    children
   }) => {
     const service = useContext(HotkeysServiceContext);
     const namespace = useContext(HotkeysNamespaceContext);
@@ -70,6 +71,6 @@ export const HotKey = memo<IHotKeyProps>(
       service
     ]);
 
-    return null;
+    return <>{children}</>;
   }
 );
