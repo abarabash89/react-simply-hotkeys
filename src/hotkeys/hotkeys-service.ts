@@ -33,6 +33,7 @@ export class HotkeysService {
   private config: IHotkeysServiceConfig;
   private listenersStore: ListenersStoreType = new Map();
   private currentNamespace = "";
+  private lastPressedKeysCache: number[] | undefined;
 
   constructor(userConfig: Partial<IHotkeysServiceConfig> = {}) {
     this.config = {
@@ -81,10 +82,18 @@ export class HotkeysService {
       return;
     }
 
-    const hotKeyListener = this.findHotKeyListener(
-      this.getKeysFromEvent(event),
-      event.type as HotKeyEventTypes
-    );
+    const eventType = event.type as HotKeyEventTypes;
+
+    const pressedKeys =
+      "keyup" === eventType && this.lastPressedKeysCache
+        ? this.lastPressedKeysCache
+        : this.getKeysFromEvent(event);
+
+    // save pressed keys until keyup event
+    this.lastPressedKeysCache =
+      "keydown" === eventType ? pressedKeys : undefined;
+
+    const hotKeyListener = this.findHotKeyListener(pressedKeys, eventType);
     if (!hotKeyListener) {
       return;
     }
@@ -97,7 +106,6 @@ export class HotkeysService {
     if (ignoreHotKeyAction) {
       return;
     }
-
     hotKeyListener.listener(event);
     event.preventDefault();
   };
