@@ -21,7 +21,7 @@
     "react-router-dom": "^5.1.2",
     "react-scripts": "3.4.0",
     "source-map-explorer": "^2.3.1",
-    "typescript": "^3.7.5"
+    "typescript": "^3.7.5" 
   },
   "scripts": {
     "analyze": "source-map-explorer 'build/static/js/*.js'",
@@ -31,11 +31,6 @@
     "eject": "react-scripts eject",
     "storybook": "start-storybook -p 9009 -s public",
     "build-storybook": "build-storybook -s public"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
