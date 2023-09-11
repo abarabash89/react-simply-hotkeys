@@ -1,0 +1,17 @@
+.list {
+  list-style: none;
+
+  padding: 10px;
+  margin: 0;
+
+  width: 500px;
+}
+
+.hotkey {
+  &:not(:last-child) {
+    margin-bottom: 12px;
+  }
+
+  display: grid;
+  grid-template-columns: 1fr max-content;
+}
